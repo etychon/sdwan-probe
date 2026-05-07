@@ -1,10 +1,10 @@
 [build-system]
-requires = ["setuptools>=61", "wheel"]
+requires = ["setuptools>=61", "setuptools-scm>=8", "wheel"]
 build-backend = "setuptools.build_meta"
 
 [project]
 name = "sdwan-probe"
-version = "1.0.0"
+dynamic = ["version"]
 description = "Lightweight CLI to probe Cisco Catalyst SD-WAN controllers (DTLS/TLS) without credentials."
 readme = "README.md"
 requires-python = ">=3.8"
@@ -44,6 +44,10 @@ sdwan-probe = "sdwanprobe.cli:cli"
 [tool.setuptools.packages.find]
 where = ["."]
 include = ["sdwanprobe*"]
+
+[tool.setuptools_scm]
+version_file = "sdwanprobe/_version.py"
+fallback_version = "0.0.0"
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]

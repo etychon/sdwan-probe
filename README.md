@@ -133,7 +133,15 @@ Upgrade to latest commit on default branch:
 pipx upgrade sdwan-probe
 ```
 
-If `pipx upgrade` does not pick up new source changes (for example after URL/source changes), reinstall:
+Note: `pipx upgrade` is version-based. If `pyproject.toml` version has not changed, pipx may report "already at latest version" even when new commits exist on GitHub.
+
+To force-refresh from the latest GitHub `main` code:
+
+```bash
+pipx install --force git+https://github.com/etychon/sdwan-probe.git@main
+```
+
+If needed, reinstall from scratch:
 
 ```bash
 pipx uninstall sdwan-probe
@@ -166,6 +174,20 @@ python3 -m pip install -e .
 ```bash
 sdwan-probe --version
 sdwan-probe --help
+```
+
+## Versioning (for maintainers)
+
+This project uses automatic versioning via `setuptools-scm`.
+
+- Release versions come from git tags (example: `v1.0.2` -> package version `1.0.2`)
+- Commits after a tag automatically get dev versions (example: `1.0.3.devN+g<hash>`)
+
+Create and push a new release tag:
+
+```bash
+git tag v1.0.2
+git push origin v1.0.2
 ```
 
 ## Quick Start
