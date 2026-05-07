@@ -342,7 +342,11 @@ It keeps only DNS-resolvable candidates, then probes them.
 ## How the Probe Works Internally
 
 - `vManage` uses Python `ssl` for TLS handshake and certificate capture.
-- `vBond` / `vSmart` use `openssl s_client` in DTLS mode.
+- `vBond` / `vSmart` try multiple protocol+port combinations when default controller ports are used:
+  - DTLS/UDP on `12346`
+  - TLS/TCP on `12346`
+  - DTLS/UDP on `23456`
+  - TLS/TCP on `23456`
 - For DTLS, output parsing is split so binary payload data does not pollute terminal output.
 - Certificates are parsed with `cryptography`.
 - Identity extraction from DTLS payload is heuristic and best-effort.
@@ -373,6 +377,18 @@ or reinstall with `python3 -m pip install .`.
 
 Expected in many environments when trust chain is not fully available locally.
 Use probe mode without strict verify or provide your org trust bundle in future enhancements.
+
+### `CERTIFICATE_VERIFY_FAILED` with `self-signed certificate`
+
+This usually means the server is presenting a certificate chain that is not anchored in the bundled Cisco roots (for example enterprise/private CA, SSL interception, or a different certificate path than expected).
+
+Confirm what certificate is actually presented from your network path:
+
+```bash
+openssl s_client -connect <host>:443 -servername <host> </dev/null 2>/dev/null | openssl x509 -noout -subject -issuer
+```
+
+Then compare with expected controller certificates and trust anchors.
 
 ### `DNS_ERROR` for discovered targets
 

@@ -45,6 +45,55 @@ def probe_tls(target: TargetSpec, timeout: int, *, ca_bundle: Optional[str] = No
         ctx.check_hostname = False
         ctx.verify_mode = ssl.CERT_NONE
 
+    def _probe_tls_unverified_for_details(verify_error: str):
+        ctx_unverified = ssl.create_default_context()
+        ctx_unverified.check_hostname = False
+        ctx_unverified.verify_mode = ssl.CERT_NONE
+        try:
+            with socket.create_connection((target.host, target.port), timeout=timeout) as sock:
+                with ctx_unverified.wrap_socket(sock, server_hostname=target.host) as ssock:
+                    der = ssock.getpeercert(binary_form=True)
+                    if not der:
+                        return (
+                            ProbeStatus.HANDSHAKE_FAILED,
+                            None,
+                            None,
+                            ssock.version(),
+                            None,
+                            None,
+                            verify_error,
+                        )
+                    cipher = ssock.cipher()
+                    cipher_name = cipher[0] if cipher else None
+                    tls_version = ssock.version()
+                    cert = parse_der_certificate(der, trusted=False, trust_error=verify_error)
+                    ca = detect_ca_type(cert.issuer_cn, cert.issuer_o)
+                    ident = SDWANIdentity(
+                        cluster_uuid=None,
+                        node_uuid=None,
+                        org_name=cert.subject_ou,
+                        ca_type=ca if ca != "—" else None,
+                    )
+                    return (
+                        ProbeStatus.HANDSHAKE_FAILED,
+                        cert,
+                        ident,
+                        tls_version,
+                        cipher_name,
+                        None,
+                        verify_error,
+                    )
+        except Exception:
+            return (
+                ProbeStatus.HANDSHAKE_FAILED,
+                None,
+                None,
+                None,
+                None,
+                None,
+                verify_error,
+            )
+
     try:
         with socket.create_connection((target.host, target.port), timeout=timeout) as sock:
             with ctx.wrap_socket(sock, server_hostname=target.host) as ssock:
@@ -105,6 +154,8 @@ def probe_tls(target: TargetSpec, timeout: int, *, ca_bundle: Optional[str] = No
             "Probe timed out",
         )
     except ssl.SSLError as e:
+        if ca_bundle:
+            return _probe_tls_unverified_for_details(str(e))
         return (
             ProbeStatus.HANDSHAKE_FAILED,
             None,

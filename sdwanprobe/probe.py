@@ -226,30 +226,109 @@ def _probe_one(
     ca_bundle: Optional[str],
 ) -> ProbeResult:
     if target.role in ("vbond", "vsmart"):
-        (
-            status,
-            cert,
-            ident,
-            protocol,
-            cipher,
-            kex,
-            err,
-            raw_err,
-            _stdout,
-        ) = probe_dtls(target, timeout, prefer_dtls12=prefer_dtls12, ca_bundle=ca_bundle)
+        ports_to_try = [target.port]
+        if target.port == default_port(target.role):
+            # Common fallback used by some deployments for controller TLS.
+            ports_to_try.append(23456)
+
+        attempts = []
+        last_raw_stderr: Optional[str] = None
+        for port in ports_to_try:
+            probe_target = TargetSpec(
+                role=target.role, host=target.host, port=port, label=target.label
+            )
+            (
+                dtls_status,
+                dtls_cert,
+                dtls_ident,
+                dtls_protocol,
+                dtls_cipher,
+                dtls_kex,
+                dtls_err,
+                raw_err,
+                _stdout,
+            ) = probe_dtls(
+                probe_target, timeout, prefer_dtls12=prefer_dtls12, ca_bundle=ca_bundle
+            )
+            if raw_err:
+                last_raw_stderr = raw_err
+            attempts.append((port, "DTLS", dtls_status, dtls_err))
+            if dtls_status == ProbeStatus.REACHABLE:
+                return ProbeResult(
+                    role=target.role,
+                    host=target.host,
+                    port=port,
+                    label=target.label,
+                    status=dtls_status,
+                    protocol=dtls_protocol,
+                    cipher_suite=dtls_cipher,
+                    key_exchange=dtls_kex,
+                    certificate=dtls_cert,
+                    sdwan_identity=dtls_ident,
+                    error=None,
+                    raw_openssl_stderr=last_raw_stderr if verbose else None,
+                )
+
+            (
+                tls_status,
+                tls_cert,
+                tls_ident,
+                tls_protocol,
+                tls_cipher,
+                tls_kex,
+                tls_err,
+            ) = probe_tls(probe_target, timeout, ca_bundle=ca_bundle)
+            attempts.append((port, "TLS", tls_status, tls_err))
+            if tls_status == ProbeStatus.REACHABLE:
+                return ProbeResult(
+                    role=target.role,
+                    host=target.host,
+                    port=port,
+                    label=target.label,
+                    status=tls_status,
+                    protocol=tls_protocol,
+                    cipher_suite=tls_cipher,
+                    key_exchange=tls_kex,
+                    certificate=tls_cert,
+                    sdwan_identity=tls_ident,
+                    error=None,
+                    raw_openssl_stderr=last_raw_stderr if verbose else None,
+                )
+
+        priority = [
+            ProbeStatus.DNS_ERROR,
+            ProbeStatus.OPENSSL_ERROR,
+            ProbeStatus.HANDSHAKE_FAILED,
+            ProbeStatus.REFUSED,
+            ProbeStatus.TIMEOUT,
+        ]
+        final_status = ProbeStatus.TIMEOUT
+        for s in priority:
+            if any(a[2] == s for a in attempts):
+                final_status = s
+                break
+
+        details = []
+        for port, proto, status, err in attempts:
+            if err:
+                details.append(f"{port}/{proto}:{status.value} ({err})")
+            else:
+                details.append(f"{port}/{proto}:{status.value}")
+        error = "Tried " + ", ".join(details)
+
         return ProbeResult(
             role=target.role,
             host=target.host,
             port=target.port,
             label=target.label,
-            status=status,
-            protocol=protocol,
-            cipher_suite=cipher,
-            key_exchange=kex,
-            certificate=cert,
-            sdwan_identity=ident,
-            error=err,
-            raw_openssl_stderr=raw_err if verbose else None,
+            status=final_status,
+            protocol=None,
+            cipher_suite=None,
+            key_exchange=None,
+            certificate=None,
+            sdwan_identity=None,
+            error=error,
+            raw_openssl_stderr=last_raw_stderr if verbose else None,
         )
 
     status, cert, ident, protocol, cipher, kex, err = probe_tls(

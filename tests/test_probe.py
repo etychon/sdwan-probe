@@ -1,7 +1,10 @@
 """Target token and config parsing."""
 
+import sdwanprobe.probe as probe_mod
+from sdwanprobe.models import ProbeStatus, TargetSpec
 from sdwanprobe.probe import (
     CISCO_CA_BUNDLE_PEM,
+    _probe_one,
     discover_targets_from_url,
     load_config,
     parse_target_token,
@@ -98,3 +101,108 @@ def test_discover_targets_tolerates_role_prefixed_url():
     assert specs[0].host == "vmanage-acme.sdwan.example.net"
     assert specs[0].port == 443
     assert unresolved == ["vbond:vbond-acme.sdwan.example.net", "vsmart:vsmart-acme.sdwan.example.net"]
+
+
+def test_probe_one_vbond_falls_back_to_common_port(monkeypatch):
+    def fake_probe_dtls(target, timeout, prefer_dtls12=True, ca_bundle=None):
+        if target.port == 23456:
+            return (
+                ProbeStatus.TIMEOUT,
+                None,
+                None,
+                None,
+                None,
+                None,
+                "Probe timed out",
+                "dtls-timeout",
+                b"",
+            )
+        return (
+            ProbeStatus.TIMEOUT,
+            None,
+            None,
+            None,
+            None,
+            None,
+            "Probe timed out",
+            "dtls-timeout",
+            b"",
+        )
+
+    def fake_probe_tls(target, timeout, ca_bundle=None):
+        if target.port == 23456:
+            return (
+                ProbeStatus.REACHABLE,
+                None,
+                None,
+                "TLSv1.3",
+                "TLS_AES_256_GCM_SHA384",
+                None,
+                None,
+            )
+        return (
+            ProbeStatus.HANDSHAKE_FAILED,
+            None,
+            None,
+            None,
+            None,
+            None,
+            "certificate verify failed",
+        )
+
+    monkeypatch.setattr(probe_mod, "probe_dtls", fake_probe_dtls)
+    monkeypatch.setattr(probe_mod, "probe_tls", fake_probe_tls)
+
+    res = _probe_one(
+        TargetSpec(role="vbond", host="vbond-acme.sdwan.example.net", port=12346),
+        timeout=5,
+        prefer_dtls12=True,
+        verbose=False,
+        ca_bundle=None,
+    )
+    assert res.status == ProbeStatus.REACHABLE
+    assert res.protocol == "TLSv1.3"
+    assert res.port == 23456
+
+
+def test_probe_one_vbond_failure_lists_attempted_ports(monkeypatch):
+    def fake_probe_dtls(target, timeout, prefer_dtls12=True, ca_bundle=None):
+        return (
+            ProbeStatus.TIMEOUT,
+            None,
+            None,
+            None,
+            None,
+            None,
+            "Probe timed out",
+            "dtls-timeout",
+            b"",
+        )
+
+    def fake_probe_tls(target, timeout, ca_bundle=None):
+        return (
+            ProbeStatus.HANDSHAKE_FAILED,
+            None,
+            None,
+            None,
+            None,
+            None,
+            "certificate verify failed",
+        )
+
+    monkeypatch.setattr(probe_mod, "probe_dtls", fake_probe_dtls)
+    monkeypatch.setattr(probe_mod, "probe_tls", fake_probe_tls)
+
+    res = _probe_one(
+        TargetSpec(role="vbond", host="vbond-acme.sdwan.example.net", port=12346),
+        timeout=5,
+        prefer_dtls12=True,
+        verbose=False,
+        ca_bundle=None,
+    )
+    assert res.status == ProbeStatus.HANDSHAKE_FAILED
+    assert res.error is not None
+    assert "12346/DTLS" in res.error
+    assert "12346/TLS" in res.error
+    assert "23456/DTLS" in res.error
+    assert "23456/TLS" in res.error
