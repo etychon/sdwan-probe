@@ -1,0 +1,17 @@
+# Example cluster definition for sdwan-probe --config
+cluster_name: "Example SD-WAN"
+targets:
+  - role: vbond
+    host: 10.0.1.1
+    port: 12346
+    label: "vBond Primary"
+  - role: vsmart
+    host: 10.0.1.2
+    label: "vSmart-1"
+  - role: vsmart
+    host: 10.0.1.3
+    label: "vSmart-2"
+  - role: vmanage
+    host: 10.0.1.4
+    label: "vManage"
+    port: 8443

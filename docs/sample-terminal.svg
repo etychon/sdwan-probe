@@ -1,0 +1,13 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="720" height="280" viewBox="0 0 720 280">
+  <rect width="720" height="280" rx="12" fill="#0d1117"/>
+  <text x="24" y="40" fill="#58a6ff" font-family="ui-monospace, SFMono-Regular, Menlo, monospace" font-size="16" font-weight="bold">vBond  "  10.0.1.1:12346</text>
+  <text x="24" y="68" fill="#3fb950" font-family="ui-monospace, SFMono-Regular, Menlo, monospace" font-size="15" font-weight="bold">� REACHABLE</text>
+  <text x="24" y="110" fill="#f0f6fc" font-family="ui-monospace, SFMono-Regular, Menlo, monospace" font-size="14" font-weight="bold">Certificate</text>
+  <text x="24" y="140" fill="#8b949e" font-family="ui-monospace, SFMono-Regular, Menlo, monospace" font-size="13">Subject CN</text>
+  <text x="200" y="140" fill="#f0f6fc" font-family="ui-monospace, SFMono-Regular, Menlo, monospace" font-size="13">vbond-a83e6648-....viptela.com</text>
+  <text x="24" y="168" fill="#8b949e" font-family="ui-monospace, SFMono-Regular, Menlo, monospace" font-size="13">Fingerprint</text>
+  <text x="200" y="168" fill="#f0f6fc" font-family="ui-monospace, SFMono-Regular, Menlo, monospace" font-size="13">SHA-256: AB:CD:EF:&</text>
+  <text x="24" y="210" fill="#f0f6fc" font-family="ui-monospace, SFMono-Regular, Menlo, monospace" font-size="14" font-weight="bold">SD-WAN Identity</text>
+  <text x="24" y="240" fill="#8b949e" font-family="ui-monospace, SFMono-Regular, Menlo, monospace" font-size="13">Cluster UUID</text>
+  <text x="200" y="240" fill="#39c5cf" font-family="ui-monospace, SFMono-Regular, Menlo, monospace" font-size="13">a83e6648-6a84-4ff2-9489-af97fbb43c94</text>
+</svg>
