@@ -44,23 +44,68 @@ It is designed for quick operational checks, troubleshooting, and automation pip
 
 ## Installation (Beginner Friendly)
 
-### Option A: Install from package index
+Many modern Python distributions (Linux and macOS) enforce [PEP 668](https://peps.python.org/pep-0668/), which blocks global `pip install` and shows:
+`error: externally-managed-environment`.
+
+If you see that error, use **Option A (`pipx`)** or **Option B (virtual environment)** below.
+
+### Option A (Recommended): Install with pipx
+
+`sdwan-probe` is currently installed from GitHub (not PyPI), so use the Git URL form with `pipx`.
+
+Linux (Debian/Ubuntu):
 
 ```bash
+sudo apt update
+sudo apt install -y pipx
+pipx ensurepath
+pipx install git+https://github.com/etychon/sdwan-probe.git
+```
+
+Linux (Fedora):
+
+```bash
+sudo dnf install -y pipx
+pipx ensurepath
+pipx install git+https://github.com/etychon/sdwan-probe.git
+```
+
+macOS (Homebrew):
+
+```bash
+brew install pipx
+pipx ensurepath
+pipx install git+https://github.com/etychon/sdwan-probe.git
+```
+
+Then verify:
+
+```bash
+sdwan-probe --help
+```
+
+If/when the project is published to PyPI, this shorter command will work:
+
+```bash
+pipx install sdwan-probe
+```
+
+### Option B: Install in a virtual environment (venv)
+
+```bash
+python3 -m venv .venv
+source .venv/bin/activate
+python3 -m pip install --upgrade pip
 python3 -m pip install sdwan-probe
 ```
 
-If `sdwan-probe` command is not found after install, run with:
+### Option C: Install from GitHub source (local checkout)
 
 ```bash
-python3 -m sdwanprobe --help
-```
-
-### Option B: Install from GitHub source (local checkout)
-
-```bash
-git clone https://github.com/<your-account>/sdwan-probe.git
+git clone https://github.com/etychon/sdwan-probe.git
 cd sdwan-probe
+python3 -m venv .venv
+source .venv/bin/activate
 python3 -m pip install .
 ```
 
@@ -68,6 +113,59 @@ For development mode:
 
 ```bash
 python3 -m pip install -e ".[dev]"
+```
+
+## Update to Latest Version
+
+Use the update path that matches how you installed the tool.
+
+### If installed with pipx (GitHub URL)
+
+Check current version:
+
+```bash
+sdwan-probe --version
+```
+
+Upgrade to latest commit on default branch:
+
+```bash
+pipx upgrade sdwan-probe
+```
+
+If `pipx upgrade` does not pick up new source changes (for example after URL/source changes), reinstall:
+
+```bash
+pipx uninstall sdwan-probe
+pipx install git+https://github.com/etychon/sdwan-probe.git
+```
+
+### If installed in a virtual environment (venv)
+
+Activate your environment, then upgrade:
+
+```bash
+source .venv/bin/activate
+python3 -m pip install --upgrade pip
+python3 -m pip install --upgrade git+https://github.com/etychon/sdwan-probe.git
+```
+
+### If running from a local git clone
+
+Pull latest changes and reinstall in your virtual environment:
+
+```bash
+cd sdwan-probe
+git pull --rebase
+source .venv/bin/activate
+python3 -m pip install -e .
+```
+
+### Verify after update
+
+```bash
+sdwan-probe --version
+sdwan-probe --help
 ```
 
 ## Quick Start
@@ -138,7 +236,8 @@ sdwan-probe [OPTIONS] [TARGET ...]
   Load targets from YAML file.
 
 - `--discover-from-url URL`  
-  Infer probable `vmanage`/`vbond`/`vsmart` hostnames from a vManage-style URL and include DNS-resolvable ones.
+  Infer probable `vmanage`/`vbond`/`vsmart` hostnames from a vManage-style URL and include DNS-resolvable ones.  
+  Pass only the URL/hostname (for example `https://vmanage-acme.sdwan.example.net`), not `vmanage:...`.
 
 - `--timeout INTEGER` (default: `10`)  
   Per-target probe timeout in seconds.

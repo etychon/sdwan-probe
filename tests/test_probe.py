@@ -86,3 +86,15 @@ def test_discover_targets_from_non_prefixed_host_is_vmanage_only():
 
 def test_cisco_ca_bundle_has_certs():
     assert CISCO_CA_BUNDLE_PEM.count("-----BEGIN CERTIFICATE-----") >= 1
+
+
+def test_discover_targets_tolerates_role_prefixed_url():
+    specs, unresolved = discover_targets_from_url(
+        "vmanage:https://vmanage-acme.sdwan.example.net",
+        resolver=lambda host: host == "vmanage-acme.sdwan.example.net",
+    )
+    assert len(specs) == 1
+    assert specs[0].role == "vmanage"
+    assert specs[0].host == "vmanage-acme.sdwan.example.net"
+    assert specs[0].port == 443
+    assert unresolved == ["vbond:vbond-acme.sdwan.example.net", "vsmart:vsmart-acme.sdwan.example.net"]

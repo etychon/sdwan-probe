@@ -1,7 +1,7 @@
 # Product Requirements Document — `sdwan-probe`
 
 **Version:** 1.0 — Initial  
-**Target audience:** Cursor (AI-assisted implementation)  
+**Target audience:** AI-assisted implementation tools  
 **License intent:** MIT, publish on GitHub  
 
 ---

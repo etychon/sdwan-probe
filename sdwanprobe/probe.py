@@ -29,6 +29,7 @@ def default_port(role: str) -> int:
 
 _SCHEME_RE = re.compile(r"^[a-zA-Z][a-zA-Z0-9+.-]*://")
 _DISCOVERY_PREFIX_RE = re.compile(r"^(vmanage|vbond|vsmart)([-.])(.*)$", re.IGNORECASE)
+_ROLE_TOKEN_PREFIX_RE = re.compile(r"^(vmanage|vbond|vsmart):(.*)$", re.IGNORECASE)
 
 # Cisco-published root certificates from https://www.cisco.com/security/pki/
 # - Cisco Root CA 2099 (crca2099.pem)
@@ -97,6 +98,16 @@ def _parse_urlish_host(raw: str) -> str:
     value = raw.strip()
     if not value:
         raise ValueError("Discovery URL/host cannot be empty")
+
+    # Be forgiving if users pass TARGET-like input (e.g. "vmanage:https://host").
+    # --discover-from-url expects only URL/host, but stripping role prefix avoids
+    # accidental discovery against a literal "vmanage" hostname.
+    role_prefixed = _ROLE_TOKEN_PREFIX_RE.match(value)
+    if role_prefixed:
+        remainder = role_prefixed.group(2).strip()
+        if remainder:
+            value = remainder
+
     if _SCHEME_RE.match(value):
         parsed = urlsplit(value)
         if not parsed.hostname:
